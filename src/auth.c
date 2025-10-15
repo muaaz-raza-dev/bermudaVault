@@ -49,20 +49,16 @@ int authenticate(unsigned char *DEK){
             if (decryption_status == 0){
                 break;
             }
-            else if (decryption_status ==-1){
-            printf("Incorrect password \n");
-            }
+            
         }
     }
 return 0;
 }
 
-int login_n_load_dek(char *password,char DEK[crypto_secretbox_KEYBYTES]){
-    int status = load_dek(password,DEK);
-    return status;
-}
+
 
 int create_account(char *password,unsigned char DEK[crypto_secretbox_KEYBYTES]){
+    
     generate_dek(password,DEK);
     return 0;
 }
