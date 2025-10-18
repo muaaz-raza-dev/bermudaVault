@@ -56,32 +56,39 @@ int check_password_strength(char *pass){
     }
 }
 
-int take_password_input(char *pass,size_t pasword_limit,char *print_message){
-    bool is_first_try = false;
+int take_password_input(char *pass,size_t pasword_limit,char *print_message,bool is_strict){
+    bool is_first_time = true;
     while (1){
-         printf("%s",print_message);
-            if (!is_first_try) getchar();
+           printf("%s",print_message);
+            if (!is_first_time){
+                getchar();
+            } 
+            is_first_time = false;
             fgets(pass,pasword_limit,stdin);
-            is_first_try =false;
-            int strength_status = check_password_strength(pasword_limit); 
-            if (strength_status == 4){continue;}
-            if(strength_status == 0){ 
-                break;
+            pass[strcspn(pass, "\n")] = '\0';
+
+            int strength_status = check_password_strength(pass); 
+            if (is_strict){
+                if (strength_status == 4){continue;}
+                if(strength_status == 0){ 
+                    break;
+                }
             }
             else{
                 int is_change_password = 0;
-                printf("\n-Change the password [1] \n-Keep it [0 or anything]\n ");
+                printf("\n Change the password (0/1) : ");
                 scanf("%d",&is_change_password);
-                if (is_change_password ==1) continue;
+                while(getchar()!='\n');
+                if (is_change_password == 1) continue;
                 else break;
             }
     }
     return 0;
 }
 
-int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES]){
+int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES],bool is_update_password){
     mkdir("./data", 0700);
-    FILE *fptr = fopen("./data/user.dat","wb");
+    FILE *fptr = fopen("./data/user.dat","rb+");
     
 
     if (fptr == NULL){
@@ -101,9 +108,11 @@ int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES]){
     }
 
     
-
     unsigned char dek[crypto_secretbox_KEYBYTES];
-    randombytes_buf(dek, sizeof(dek));
+    if(!is_update_password){
+        randombytes_buf(dek, sizeof(dek));
+    }
+    else memcpy(dek,DEK,sizeof(DEK));
 
     unsigned char nonce[crypto_secretbox_NONCEBYTES];
     randombytes_buf(nonce, sizeof(nonce));
@@ -116,7 +125,7 @@ int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES]){
 
 
     
-    memcpy(DEK, dek,crypto_secretbox_KEYBYTES );
+    if(!is_update_password) memcpy(DEK, dek,crypto_secretbox_KEYBYTES );
 
 
     VaultHeader vault ;

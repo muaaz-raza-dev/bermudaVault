@@ -7,18 +7,28 @@
 #include "types.h"
 
 
+void display_record(VaultEntry record,int index,bool is_password,char *plain_password){
+    printf("%-5d %-20s %-20s ", index, record.website,record.username,is_password);
+    if(is_password) printf("%-20s",plain_password);
+    printf("\n");
+}
 
 SearchCredsOutput search_record(char *query){
     FILE *fptr = fopen(VAULT_PATH, "rb");
+    if(fptr == NULL){
+        perror("Error opening the file");
+    }
+
     VaultEntry current_record;
     size_t query_len = strlen(query);
     int index = 0;
     int total_found =0;
     int *found_indices ;
+    
     printf("\n%-5s %-20s %-20s\n", "ID", "Website", "Username");
     printf("---------------------------------------------------------\n");
     while(fread(&current_record,sizeof(current_record),1,fptr)==1){
-
+        
         if ( strstr(current_record.website,query) != NULL || strstr(current_record.username, query) != NULL ) {
             printf("%-5d %-20s %-20s \n", index+1, current_record.website,current_record.username);
             found_indices = (int*)realloc(found_indices,total_found*sizeof(char));
@@ -28,34 +38,57 @@ SearchCredsOutput search_record(char *query){
         
         index++;
     }   
-    printf("---------------------------------------------------------\n");
+    if(total_found ) printf("---------------------------------------------------------\n");
     printf("Total found: %d\n", total_found);
 
     SearchCredsOutput output = {total_found,found_indices,index};
+    fclose(fptr);
     return output;
 }
 
+SearchCredsOutput trigger_search(){
+    SearchCredsOutput search_result;
+    char query[64];
+    while (1){
+        printf("Search record by username or website : ");
+        getchar() ;
+        fgets(query,sizeof(query),stdin);
+        query[strcspn(query, "\n")] = '\0';
 
-int read_vault(char *dek ){
-    bool is_filters =false ;
-    printf("1.List all stored credentials [0] \n2.Search by website/username [1]\n");
-    scanf("%d",&is_filters);
+        search_result = search_record(query);
+        
+        if(search_result.total_found ==0){
+            printf("Not found any matching record\n");
+            continue;
+        }
+        break;
+    }
+    return search_result;
+}
+
+int read_vault(unsigned char *dek ){
+    int read_type = 1 ;
+    printf("1.Read all \n2.Search by website/username \n3.Access directly by ID\n4.Exit Read\n");
+    scanf("%d",&read_type);
     FILE *fptr ;
     int total =0;
     SearchCredsOutput search_output ;
     
 
     
-    if (is_filters){
-        char query[64];
-        printf("Search by username or wesbite : ");
-        getchar();
-        fgets(query,sizeof(query),stdin);
-        query[strcspn(query, "\n")] = '\0';
-        search_output =  search_record(query);
-        total = search_output.total_records;
+    if (read_type==2){
+        while (!total){
+            char query[64];
+            printf("Search by username or wesbite (Enter 0 to exit reading): ");
+            getchar();
+            fgets(query,sizeof(query),stdin);
+            if(query[0]=='0') return 0;
+            query[strcspn(query, "\n")] = '\0';
+            search_output =  search_record(query);
+            total = search_output.total_records;
+        }
     }
-    else {
+    else if(read_type==1) {
     printf("\n%-5s %-20s %-20s\n", "ID", "Website", "Username");
     printf("---------------------------------------------------------\n");
         fptr =  fopen(VAULT_PATH, "rb");
@@ -73,35 +106,44 @@ int read_vault(char *dek ){
         printf("Total entries: %d\n", total);
         fclose(fptr);
     }
+    else if(read_type==3){
+        int target_index = 0;
+        printf("Enter ID of the record : ");
+        scanf("%d",&target_index);
+
+        printf("\n%-5s %-20s %-20s\n", "ID", "Website", "Username");
+        printf("---------------------------------------------------------\n");
+        fptr =  fopen(VAULT_PATH, "rb");
+           if (fptr == NULL){  
+            perror("File open failed");
+            return -1;
+        }
+
+        VaultEntry current_record;
+        fseek(fptr,(target_index-1 )* sizeof(VaultEntry),SEEK_CUR);
+        if(fread(&current_record, sizeof(current_record), 1, fptr) == 1){
+            printf("%-5d %-20s %-20s\n", total + 1, current_record.website, current_record.username);
+            printf("---------------------------------------------------------\n");
+        }
+        else {
+            printf("Error reading record (Invalid ID)");
+            return -1;
+        }
+        fclose(fptr);
+    }
         
         int target_index = 0;
         if (total > 0) {
             while (1){
-                printf("Enter an ID to reveal the password (-1 to exit reading ) : ");
+                printf("Enter record ID to reveal the password (-1 to exit reading ) : ");
                 scanf("%d",&target_index);
-                
-                if (target_index ==-1){
+                if(target_index==-1){
                     return 0;
                 }
-                
-                // if(is_filters){
-                //     bool is_found = false;
-                //     for (int i = 0; i < total; i++){
-                //         if(search_output.found_indices[i] == target_index){
-                //             is_found =true;
-                //             break;
-                //         }
-                //     }
-                //     if(!is_found){
-                //         printf("Select ID from the searched results \n");
-                //         continue;
-                //     }
-                // }
-                
-                    if (target_index >total ||target_index <= 0){
+                if ((read_type!=3 && target_index >total )||target_index <= 0){
                         printf("Invalid ID \n");
-                    }
-                    else break;
+                }
+                else break;
                 
             }
             fptr = fopen(VAULT_PATH,"rb");
@@ -119,12 +161,11 @@ int read_vault(char *dek ){
                 printf("---------------------------------------------------------\n");
             }
             else {
-                perror("Error reading the record"); 
-                return 1;
+                perror("Error reading record (Invalid ID or file crashed)\n"); 
             }
         }
         else {
-            printf("No entries found.\n");
+          if(read_type!=3)  printf("No entries found.\n");
         }
         return 0;
 }
@@ -132,7 +173,7 @@ int read_vault(char *dek ){
 
 
 
-int write_record(char *dek){
+int write_record(unsigned char *dek){
     
     VaultEntry user_input ;
     while (1){
@@ -221,139 +262,57 @@ return 0;
 
 
 
-// int update_record(char *dek, char *file_path){
-//     char query[256];
-//     int target_index =0;
-//     SearchCredsOutput search_result ;
-//     while (1){
-        
-        
-//         printf("Seach either by username or website url in the directory \nSearch :");
-//         fgets(query,sizeof(query),stdin);
-        
-        
-//         search_result = search_record("dek","/data/vault.dat",query);
-        
-//         if(search_result.total_found ==0){
-//             printf("Not found any matching record\n");
-//             continue;
-//         }
-//         int search_again = 0;
-//             printf("\n-Search again [1] \n-Found [0 or anything]\n ");
-//             scanf("%d",&search_again);
-//             if (search_again ==1) continue;
-//             else break;
-//     }
-
-
-//     bool is_valid_index = false;
-//     while (!is_valid_index){
-        
-//     printf("Write the index of the record to update\n");
-//     scanf("%d",&target_index);
-//     for (int i = 0; i < search_result.total_found ; i++){
-//         if(search_result.found_indices[i]==target_index) {
-//             is_valid_index=true;
-//             break;
-//         }
-//     }
-//     if(!is_valid_index){
-//         printf("Select valid index from above\n");
-//     }
-//     }
-
-//     FILE *fptr = fopen(file_path,"rb+");
-//     if(target_index !=0) fseek(fptr,target_index-1 ,SEEK_SET);
-//     VaultEntry current_stored_record;
-//     VaultEntry current_updated_record;
-//     char plain_password[28];
-//     bool change_username =true,change_password =true , change_wesbite =true;
-
-//     fread(&current_stored_record,sizeof(current_stored_record),1,fptr);
-//     while (1){
-//         printf("Type the updated username (type 0 to remain same) : ");
-//         fgets(&current_updated_record.username,sizeof(current_updated_record.username),stdin);
-//         if(current_updated_record.username[0]=='0'){
-//             change_username = false;
-//             strcmp(current_updated_record.username,current_stored_record.username);
-//             break;
-//         }
-//         else if(strcmp(current_updated_record.username," ")==0){
-//             printf("Invalid username");
-//             continue;
-//         }
-//         break;
-//     }
-//     while (1){
-//         printf("Type the updated website url (type 0 to remain same) : ");
-//         fgets(&current_updated_record.website,sizeof(current_updated_record.website),stdin);
-//         if(current_updated_record.website[0]=='0'){
-//             change_wesbite = false;
-//             strcmp(current_updated_record.website,current_stored_record.website);
-//             break;
-//         }
-//         else if(strcmp(current_updated_record.website,' ')==0){
-//             printf("Invalid website url");
-//             continue;
-//         }
-//         break;
-//     }
-//     while (1){
-//         printf("Change Password (0/1)? : ");
-//         printf("%d",&change_password);
-//         if(change_password ==0){
-//         change_password = false;
-//         strcmp(current_updated_record.password,current_stored_record.password);
-//         break;
-//         }
-//         take_password_input(&current_updated_record.password,sizeof(current_updated_record.password),"Type the updated password : ");
-//         strcpy(plain_password,current_updated_record.password);
-//         //Encrypt password 
-//     }
-
-//     printf("Are you sure you want to update ?");
-//     printf("%-10s %10s %10s","Username","website url","password");
-//     printf("%-10s %10s %10s",current_updated_record.username,current_updated_record.website,change_password ==0?"No change": plain_password);
-//     if(!change_password && !change_username &&!change_wesbite) {
-//         printf("Nothing to change");
-//         return 0;
-//     }
-//     if (fwrite(&current_updated_record,sizeof(current_updated_record),1,fptr)!=1){
-//         printf("Error updating , try again");
-//         return 1;
-//     };    
-//     fclose(fptr);
 
 
 
-// return 0;
-// }
-
-
-
-int operation_executer(unsigned char dek[crypto_secretbox_KEYBYTES]){
-    
-    while (1){
+int operation_executer(unsigned char dek[crypto_secretbox_KEYBYTES]) {
+    while (1) {
         int operation_num = 0;
-        printf("=== Password Vault Menu ===\n");
-        printf("1. Add a new password\n");
-        printf("2. View saved passwords\n");
-        printf("3. Update an existing password\n");
-        printf("4. Delete a password\n");
-        printf("\nSelect an option (1-4): ");
 
-        scanf("%d",&operation_num);
-        switch (operation_num){
-            case 1:
-            write_record(dek);
-            break;
-            case 2:
-            read_vault(dek);
-            break;
-            default:
-            printf("Invalid operation is selected\n");
+        printf("\n=== Password Vault Menu ===\n");
+        printf("1. Add a new record\n");
+        printf("2. Read saved records\n");
+        printf("3. Update an existing record\n");
+        printf("4. Delete a password\n");
+        printf("5. Change master password\n");
+        printf("6. Exit\n");
+        printf("\nSelect an option (1-6): ");
+
+        if (scanf("%d", &operation_num) != 1) {
+            printf("Invalid input. Please enter a number.\n");
+            // clear the input buffer
+            while (getchar() != '\n');
             continue;
-            break;
+        }
+
+        switch (operation_num) {
+            case 1:
+                write_record(dek);
+                break;
+
+            case 2:
+                read_vault(dek);
+                break;
+
+            case 3:
+                update_record(dek);
+                break;
+
+            case 4:
+                // delete_record(dek);
+                break;
+
+            case 5:
+                change_master_password(dek);
+                break;
+
+            case 6:
+                printf("Exiting vault... Goodbye!\n");
+                return 0;
+
+            default:
+                printf("Invalid operation selected. Please try again.\n");
+                continue;
         }
     }
 }

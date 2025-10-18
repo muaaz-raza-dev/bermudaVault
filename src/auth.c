@@ -5,6 +5,13 @@
 #include <sodium.h>
 #include "types.h"
 
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
+
+
 typedef struct {
     char password[30];
 } master_credentials;
@@ -37,7 +44,7 @@ int authenticate(unsigned char *DEK){
                 else break;
             }
         }
-        generate_dek(cred.password,DEK);
+        generate_dek(cred.password,DEK,false);
     }
     else {
         while (1){
@@ -53,6 +60,16 @@ int authenticate(unsigned char *DEK){
         }
     }
 return 0;
+}
+
+int change_master_password(unsigned char *DEK){
+    char new_password[64];
+    printf("Type new password : ");
+    getchar();
+    fgets(new_password,sizeof(new_password),stdin);
+    generate_dek(new_password,DEK,true);
+
+    return 0;
 }
 
 
@@ -85,6 +102,6 @@ int decrypt_vault_password(char plain_text_password[MAX_PASS_LEN],Encrypted_Pass
         plain_text_password[pwd_len] = '\0';
     else
         plain_text_password[MAX_PASS_LEN - 1] = '\0';
-        plain_text_password[pwd_len] = '\0';    
+        
     return 0;
 }

@@ -8,6 +8,7 @@
 #pragma once
 #include <sodium.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
     unsigned char salt[SALT_LEN];              
@@ -37,14 +38,27 @@ typedef struct {
 int check_password_strength(char *pass);
 void print_hex(const char *label, const unsigned char *data, size_t len) ;
 int authenticate(unsigned char DEK[crypto_secretbox_KEYBYTES]);
-int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES]);
-int take_password_input(char *pass,size_t pasword_limit,char *print_message);
+int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES],bool is_update_password);
+
+int take_password_input(char *pass,size_t pasword_limit,char *print_message,bool is_strict);
+
 int load_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES]);
 int decrypt_vault_password(char plain_text_password[MAX_PASS_LEN],Encrypted_Password *pwd,unsigned char dek[crypto_secretbox_KEYBYTES]);
+int change_master_password(unsigned char *DEK);
 
 int operation_executer(unsigned char dek[crypto_secretbox_KEYBYTES]);
 
 int encrypt_vault_password(char plain_text_password[MAX_PASS_LEN],Encrypted_Password *pwd,unsigned char dek[crypto_secretbox_KEYBYTES]);
+
+void display_record(VaultEntry record,int index,bool is_password,char *plain_password);
+SearchCredsOutput search_record(char *query);
+SearchCredsOutput trigger_search();
+
+int update_record(unsigned char *dek );
+
+
+
+
 
 
 #endif // TYPES_H

@@ -11,6 +11,7 @@ int main(){
     return -1;
     }
     authenticate(dek);
+    
 
     operation_executer(dek);
 
