@@ -11,9 +11,8 @@ int main(){
     return -1;
     }
     authenticate(dek);
-    printf("Bermuda Vault is ready to serve you \n ");
-    printf("1.Read passwords\n");
-    printf("2.Update passwords\n");
-    printf("3.Delete password\n");
-    printf("4.Add password\n");
+
+    operation_executer(dek);
+
+
 }

@@ -9,7 +9,7 @@ typedef struct {
     char password[30];
 } master_credentials;
 
-int create_account(char *password,unsigned char DEK[crypto_secretbox_KEYBYTES]);
+
 
 int authenticate(unsigned char *DEK){
     FILE *fptr = fopen("./data/user.dat","rb");
@@ -37,7 +37,7 @@ int authenticate(unsigned char *DEK){
                 else break;
             }
         }
-        create_account(cred.password,DEK);
+        generate_dek(cred.password,DEK);
     }
     else {
         while (1){
@@ -57,8 +57,34 @@ return 0;
 
 
 
-int create_account(char *password,unsigned char DEK[crypto_secretbox_KEYBYTES]){
-    
-    generate_dek(password,DEK);
+int encrypt_vault_password(char plain_text_password[MAX_PASS_LEN],Encrypted_Password *pwd,unsigned char dek[crypto_secretbox_KEYBYTES]){
+    int pwd_len = strlen(plain_text_password);
+    unsigned long long cipher_len = crypto_secretbox_MACBYTES + (unsigned long long)pwd_len;
+
+    randombytes_buf(pwd->nonce,sizeof (pwd->nonce));
+    if (crypto_secretbox_easy(pwd->ciphertext,(const unsigned char *)plain_text_password,pwd_len,pwd->nonce,dek) != 0) {
+    printf("Error occured while storing credentials");
+    return -1;
+    }
+
+    pwd->ciphertext_len = cipher_len;
+
+    return 0;
+}
+
+
+
+int decrypt_vault_password(char plain_text_password[MAX_PASS_LEN],Encrypted_Password *pwd,unsigned char dek[crypto_secretbox_KEYBYTES]){
+    int pwd_len = pwd->ciphertext_len - crypto_secretbox_MACBYTES;
+
+    if (crypto_secretbox_open_easy((unsigned char *)plain_text_password,pwd->ciphertext,pwd->ciphertext_len,pwd->nonce,dek) != 0) {
+    printf("Error occured while reading credentials");
+    return -1;
+    }
+    if (pwd_len < MAX_PASS_LEN)
+        plain_text_password[pwd_len] = '\0';
+    else
+        plain_text_password[MAX_PASS_LEN - 1] = '\0';
+        plain_text_password[pwd_len] = '\0';    
     return 0;
 }
