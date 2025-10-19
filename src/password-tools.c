@@ -6,13 +6,7 @@
 #include <time.h>
 
 
-void print_hex(const char *label, const unsigned char *data, size_t len) {
-    printf("%s: ", label);
-    for (size_t i = 0; i < len; i++) {
-        printf("%02x", data[i]);
-    }
-    printf("\n");
-}
+
 
 int check_password_strength(char *pass){ 
     // 0 success , 4 too short 3 
@@ -112,7 +106,7 @@ int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES],boo
     if(!is_update_password){
         randombytes_buf(dek, sizeof(dek));
     }
-    else memcpy(dek,DEK,sizeof(DEK));
+    else memcpy(dek,DEK,crypto_secretbox_KEYBYTES);
 
     unsigned char nonce[crypto_secretbox_NONCEBYTES];
     randombytes_buf(nonce, sizeof(nonce));
@@ -177,18 +171,19 @@ int load_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES]){
     return 0;
 }
 
-int random_password_gen(char *password,int password_len){
-    srand(time(NULL));
-    for (int i = 0; i < password_len; i++)
-    {
-        int rn = (rand() % 93) + 33;
-        if (rn <= 33 && rn >= 126){
-            continue;
-            i--;
-        }
-        password[i] = (char)rn;
+void generate_secure_password(char *password, size_t length) {
+    const char charset[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+        "!@#$%^&*()_+-={}[]<>?";
+
+    unsigned char random_bytes[length];
+    randombytes_buf(random_bytes, length);
+
+    for (size_t i = 0; i < length - 1; i++) {
+        password[i] = charset[random_bytes[i] % (sizeof(charset) - 1)];
     }
-    password[password_len] = '\0';
-    return 0;
+    password[length - 1] = '\0';
 }
 

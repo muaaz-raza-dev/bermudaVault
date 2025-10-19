@@ -26,10 +26,12 @@ int update_record(unsigned char *dek ){
     VaultEntry current_stored_record;
     while (1){
         bool is_update_record;
-        printf("Write ID of the record to update : ");
+        printf("Write ID of the record to update (-1 to exit editing) : ");
         scanf("%d",&target_index);
         while (getchar()!='\n');
-
+        if(target_index == -1){
+            return 0;
+        }
         if (target_index <= 0){
             printf("Invalid ID \n");
             continue;
@@ -41,14 +43,15 @@ int update_record(unsigned char *dek ){
         fseek(fptr,(target_index-1) * sizeof(VaultEntry), SEEK_CUR);
         printf("\n%-5s %-20s %-20s\n", "ID", "Website", "Username");
         printf("---------------------------------------------------------\n");
-        if(fread(&current_stored_record,sizeof(current_stored_record),1,fptr)==1){
-            display_record(current_stored_record,target_index,false,"");
+        if(fread(&current_stored_record,sizeof(current_stored_record),1,fptr)==1 && !current_stored_record.is_deleted){
+            print_record(current_stored_record,target_index,false,"");
+            printf("---------------------------------------------------------\n");
         }
         else {
-            perror("Unable to read the selected record");
+            perror("Unable to read the selected record (Invalid ID) \n");
             continue;
         }
-        printf("Are you sure to update this record (0/1) :");
+        printf("Are you sure to update this record (0/1) : ");
         scanf("%d",&is_update_record);
         while (getchar()!='\n');
         

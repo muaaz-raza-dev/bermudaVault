@@ -4,6 +4,19 @@
 #define MAX_PASS_LEN 64
 #define MAX_PASSWORD_CIPHER_LEN (MAX_PASS_LEN + crypto_secretbox_MACBYTES)
 #define VAULT_PATH "./data/vault.dat"
+#define VAULT_DELETE_LOG_PATH "./data/del_log.dat"
+
+#ifdef _WIN32
+    #include <io.h>
+    #define TRUNCATE _chsize
+    #define FILENO _fileno
+#else
+    #include <unistd.h>
+    #define TRUNCATE ftruncate
+    #define FILENO fileno
+#endif
+
+
 #define DEK_LEN crypto_aead_xchacha20poly1305_ietf_KEYBYTES
 #pragma once
 #include <sodium.h>
@@ -27,6 +40,7 @@ typedef struct {
     Encrypted_Password pwd;
     char username[64];
     char website[64];
+    bool is_deleted;
 } VaultEntry;
 
 typedef struct {
@@ -35,7 +49,20 @@ typedef struct {
     int *found_indices;
 } SearchCredsOutput;
 
+/* 
+/ //? Del_Log_File structure 
+first the length of array then array onwards
+int total_deleted_spaces ;
+
+int deleted_indices[] ;
+
+*/
+
+
 int check_password_strength(char *pass);
+void generate_secure_password(char *password, size_t length) ;
+
+
 void print_hex(const char *label, const unsigned char *data, size_t len) ;
 int authenticate(unsigned char DEK[crypto_secretbox_KEYBYTES]);
 int generate_dek(char *PASSWORD,unsigned char DEK[crypto_secretbox_KEYBYTES],bool is_update_password);
@@ -50,11 +77,18 @@ int operation_executer(unsigned char dek[crypto_secretbox_KEYBYTES]);
 
 int encrypt_vault_password(char plain_text_password[MAX_PASS_LEN],Encrypted_Password *pwd,unsigned char dek[crypto_secretbox_KEYBYTES]);
 
-void display_record(VaultEntry record,int index,bool is_password,char *plain_password);
+void print_record(VaultEntry record,int index,bool is_password,char *plain_password);
+int display_decrypted_record(unsigned char *dek,int total,FILE *fptr,int root_target_index);
+
 SearchCredsOutput search_record(char *query);
 SearchCredsOutput trigger_search();
 
 int update_record(unsigned char *dek );
+
+int read_vault(unsigned char *dek );
+int delete_record(unsigned char *dek);
+int recheck_empty_deleted_spaces(void) ;
+void print_vault_entries_header(bool is_password);
 
 
 
