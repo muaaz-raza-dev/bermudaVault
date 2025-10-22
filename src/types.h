@@ -27,7 +27,7 @@ typedef struct {
     unsigned char salt[SALT_LEN];              
     unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES]; 
     uint32_t ciphertext_len;                                  
-    unsigned int  ciphertext[crypto_secretbox_MACBYTES + crypto_secretbox_KEYBYTES];                               
+    unsigned char  ciphertext[crypto_secretbox_MACBYTES + crypto_secretbox_KEYBYTES];                               
 } VaultHeader;
 
 typedef struct {
@@ -90,8 +90,8 @@ int delete_record(unsigned char *dek);
 int recheck_empty_deleted_spaces(void) ;
 void print_vault_entries_header(bool is_password);
 
-
-
+int ask_yes_no(const char *question) ;
+void valid_int_input(int *choice,const char *statement);
 
 
 

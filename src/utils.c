@@ -24,3 +24,25 @@ void print_vault_entries_header(bool is_password){
         printf("\033[1;36m------------------------------------------------------\033[0m\n");
     }
 }
+void valid_int_input(int *choice,const char *statement){
+    while (1){
+        printf("%s", statement);
+        if (scanf("%d", choice)!= 1){
+            printf("Invalid ID\n");
+            while (getchar() != '\n');
+            continue;
+        }
+        while (getchar() != '\n'); 
+        break;
+    }
+    
+}
+int ask_yes_no(const char *question) {
+    int choice = 0;
+    char statement[128];
+    strcpy(statement, "\033[1;36m");
+    strcat(statement, question);
+    strcat(statement, "\033[0m (1 = Yes / 0 = No): ");
+    valid_int_input(&choice,statement);
+    return choice;
+}

@@ -28,7 +28,7 @@ int display_decrypted_record(unsigned char *dek,int total,FILE *fptr,int root_ta
             VaultEntry current_record;
             if(fread(&current_record, sizeof(current_record), 1, fptr) == 1){
                 if(current_record.is_deleted) {
-                perror("Error reading record (Invalid ID)\n"); 
+                printf("Invalid ID \n"); 
                 return -1;    
                 }
                 char plain_password[MAX_PASS_LEN] ;
@@ -99,11 +99,12 @@ SearchCredsOutput trigger_search(){
 
 int read_vault(unsigned char *dek ){
     int read_type = 1 ;
+    system("cls");
     while (read_type<4&&read_type>0){
     printf("\n\033[1;36m================= Vault Reader Menu =================\033[0m\n");
-    printf("  \033[1;33m[1]\033[0m  View all stored entries\n");
+    printf("  \033[1;33m[1]\033[0m  View all records\n");
     printf("  \033[1;33m[2]\033[0m  Search by website or username\n");
-    printf("  \033[1;33m[3]\033[0m  Access entry directly by ID\n");
+    printf("  \033[1;33m[3]\033[0m  Access by ID\n");
     printf("  \033[1;33m[4]\033[0m  Exit to main menu\n");
     printf("\033[1;36m------------------------------------------------------\033[0m\n");
     printf("\033[1;32mSelect an option (1-4): \033[0m");
@@ -135,10 +136,12 @@ int read_vault(unsigned char *dek ){
     else if(read_type==1) {
         print_vault_entries_header(false);
         VaultEntry current_record;
+        int index = 0;
         while (fread(&current_record, sizeof(current_record), 1, fptr) == 1){
-            total++;
+            index++;
             if(current_record.is_deleted) continue;
-            printf("%-5d %-20s %-20s\n", total, current_record.website, current_record.username);
+            total++;
+            printf("%-5d %-20s %-20s\n", index, current_record.website, current_record.username);
         }
         printf("---------------------------------------------------------\n");
         printf("Total entries: %d\n", total);
@@ -150,7 +153,6 @@ int read_vault(unsigned char *dek ){
         if(target_index == -1){
             continue;
         }
-        VaultEntry current_record;
         display_decrypted_record(dek,total,fptr,target_index);
     }
         

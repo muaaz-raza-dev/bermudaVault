@@ -4,6 +4,7 @@
 int operation_executer(unsigned char dek[crypto_secretbox_KEYBYTES]) {
     while (1) {
         int operation_num = 0;
+        system("cls");
         printf("\n\033[1;36m================= Password Vault Menu =================\033[0m\n");
         printf("  \033[1;33m[1]\033[0m  Add a new record\n");
         printf("  \033[1;33m[2]\033[0m  Read saved records\n");
@@ -17,10 +18,10 @@ int operation_executer(unsigned char dek[crypto_secretbox_KEYBYTES]) {
 
         if (scanf("%d", &operation_num) != 1) {
             printf("Invalid input. Please enter a number.\n");
-            // clear the input buffer
             while (getchar() != '\n');
             continue;
         }
+        while (getchar() != '\n');
 
         switch (operation_num) {
             case 1:

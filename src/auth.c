@@ -26,12 +26,13 @@ int authenticate(unsigned char *DEK){
     if(fptr ==NULL){
         printf("\033[1;34m------------- Welcome to Bermuda Vault -------------\033[0m\n");
         printf("\033[0;37mSet your master password and remember it carefully.\n");
-        printf("You’ll need it to access all your saved passwords.\033[0m\n\n");
+        printf("You'll need it to access all your saved passwords.\033[0m\n");
 
         while (1){
             printf("Password : ");
             if (!is_first_try) getchar();
             fgets(cred.password,sizeof(cred.password),stdin);
+            cred.password[strcspn(cred.password, "\n")] = '\0';
 
             printf("\033[A");    // move cursor up 1 line
             printf("\033[2K\r"); // clear that line and return to start
@@ -39,14 +40,10 @@ int authenticate(unsigned char *DEK){
 
             is_first_try =false;
             int strength_status = check_password_strength(cred.password); 
-            if (strength_status == 4){continue;}
-            if(strength_status == 0){ 
-                break;
-            }
+            
+            if(strength_status <= 2) continue;
             else{
-                int is_change_password = 0;
-                printf("\n Change the password (1/0) : ");
-                scanf("%d",&is_change_password);
+                int is_change_password = ask_yes_no("Change Password");
                 if (is_change_password ==1) continue;
                 else break;
             }
@@ -59,7 +56,7 @@ int authenticate(unsigned char *DEK){
             printf("Password : ");
             if (!is_first_try) getchar();
             fgets(cred.password,sizeof(cred.password),stdin);
-
+            cred.password[strcspn(cred.password, "\n")] = '\0';
             printf("\033[A");    // move cursor up 1 line
             printf("\033[2K\r"); // clear that line and return to start
             fflush(stdout);
@@ -76,12 +73,30 @@ return 0;
 }
 
 int change_master_password(unsigned char *DEK){
-    char new_password[64];
-    printf("Type new password : ");
-    getchar();
-    fgets(new_password,sizeof(new_password),stdin);
-    generate_dek(new_password,DEK,true);
     
+    char new_password[64];
+    bool is_change_password_root = true;
+    while (is_change_password_root){
+    printf("Type new password : ");
+    fgets(new_password,sizeof(new_password),stdin);
+    new_password[strcspn(new_password, "\n")] = '\0';
+    int strength_status = check_password_strength(new_password); 
+    if (strength_status <= 2) continue;
+    else{       
+        while (1){
+        int is_change_password = ask_yes_no("Change Password");
+        if (is_change_password == 1) continue;
+        else is_change_password_root=false;
+        break;
+    }
+    }
+    }
+
+    generate_dek(new_password,DEK,true);
+    char temp[3];
+    printf("Press Enter to continue : ");
+    fgets(temp,sizeof(temp),stdin);
+            
     return 0;
 }
 
